@@ -1,9 +1,10 @@
-const CACHE_NAME = "jumpBoom-v1";
+const CACHE_NAME = "GeserGambar-v1";
 
 const urlsToCache = [
   "./",
   "./index.html",
-  "./logo.png"
+  "./icon.png",
+  "/manifest.json
 ];
 
 self.addEventListener("install", function(event) {
