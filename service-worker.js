@@ -3,7 +3,7 @@ const CACHE_NAME = "GeserGambar-v1";
 const urlsToCache = [
   "./",
   "./index.html",
-  "./icon.png",
+  "./icon.jpg",
   "/manifest.json
 ];
 
