@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Loop Editor Pro</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    color: white;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 900px;
+    background: #111;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  }
+
+  h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 15px;
+  }
+
+  input, select, button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+  }
+
+  input, select {
+    background: #222;
+    color: white;
+  }
+
+  button {
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s ease;
+  }
+
+  .save {
+    background: #00c853;
+    color: white;
+  }
+
+  .save:hover {
+    background: #00e676;
+    transform: scale(1.05);
+  }
+
+  .reset {
+    background: #ff5252;
+    color: white;
+  }
+
+  .reset:hover {
+    background: #ff1744;
+    transform: scale(1.05);
+  }
+
+  .info {
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  .canvas-container {
+    display: flex;
+    justify-content: center;
+    background: #000;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+  canvas {
+    max-width: 100%;
+    height: auto;
+    touch-action: none;
+    background: #000;
+  }
+
+  @media(max-width:600px){
+    .controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h2>🎨 Image Loop Editor Pro</h2>
+
+  <div class="controls">
+    <input type="file" id="upload" accept="image/*">
+    <select id="mode">
+      <option value="horizontal">Geser Horizontal</option>
+      <option value="free">Geser Bebas</option>
+    </select>
+    <select id="format">
+      <option value="png">Simpan PNG</option>
+      <option value="jpg">Simpan JPG</option>
+    </select>
+    <button class="save" id="saveBtn">💾 Simpan</button>
+    <button class="reset" id="resetBtn">🔄 Reset</button>
+  </div>
+
+  <div class="info" id="info">Offset X: 0 | Offset Y: 0</div>
+
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
+
+<script>
+const upload = document.getElementById('upload');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const saveBtn = document.getElementById('saveBtn');
+const resetBtn = document.getElementById('resetBtn');
+const modeSelect = document.getElementById('mode');
+const formatSelect = document.getElementById('format');
+const info = document.getElementById('info');
+
+let img = new Image();
+let offsetX = 0;
+let offsetY = 0;
+let dragging = false;
+let startX = 0;
+let startY = 0;
+let imageLoaded = false;
+let mode = "horizontal";
+
+modeSelect.addEventListener('change', () => {
+  mode = modeSelect.value;
+});
+
+upload.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    img.onload = function() {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      offsetX = 0;
+      offsetY = 0;
+      imageLoaded = true;
+      drawLoop();
+    }
+    img.src = event.target.result;
+  }
+  reader.readAsDataURL(file);
+});
+
+function drawLoop() {
+  if (!imageLoaded) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const w = img.width;
+  const h = img.height;
+
+  let x1 = offsetX % w;
+  let y1 = offsetY % h;
+
+  if (x1 > 0) x1 -= w;
+  if (y1 > 0) y1 -= h;
+
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      ctx.drawImage(img, x1 + i * w, y1 + j * h);
+    }
+  }
+
+  info.innerText = `Offset X: ${Math.round(offsetX)} | Offset Y: ${Math.round(offsetY)}`;
+}
+
+canvas.addEventListener('pointerdown', e => {
+  dragging = true;
+  startX = e.clientX;
+  startY = e.clientY;
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!dragging) return;
+
+  let x = e.clientX;
+  let y = e.clientY;
+
+  offsetX += x - startX;
+  offsetY += y - startY;
+
+  startX = x;
+  startY = y;
+
+  if (mode === "horizontal") offsetY = 0;
+
+  drawLoop();
+});
+
+canvas.addEventListener('pointerup', () => dragging = false);
+canvas.addEventListener('pointerleave', () => dragging = false);
+
+resetBtn.addEventListener('click', () => {
+  offsetX = 0;
+  offsetY = 0;
+  drawLoop();
+});
+
+saveBtn.addEventListener('click', () => {
+  if (!imageLoaded) return;
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = img.width;
+  tempCanvas.height = img.height;
+  const tctx = tempCanvas.getContext('2d');
+
+  const w = img.width;
+  const h = img.height;
+
+  let x1 = offsetX % w;
+  let y1 = offsetY % h;
+
+  if (x1 > 0) x1 -= w;
+  if (y1 > 0) y1 -= h;
+
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      tctx.drawImage(img, x1 + i * w, y1 + j * h);
+    }
+  }
+
+  const format = formatSelect.value;
+  const link = document.createElement('a');
+
+  if (format === 'jpg') {
+    link.download = 'hasil-loop.jpg';
+    link.href = tempCanvas.toDataURL('image/jpeg', 0.95);
+  } else {
+    link.download = 'hasil-loop.png';
+    link.href = tempCanvas.toDataURL('image/png');
+  }
+
+  link.click();
+});
+</script>
+
+</body>
+</html>
